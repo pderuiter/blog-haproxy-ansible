@@ -1,0 +1,78 @@
+---
+- name: Ensure HAProxy socket directory exists
+  ansible.builtin.file:
+    path: "{{ dataplaneapi_haproxy_socket | dirname }}"
+    state: directory
+    owner: "{{ dataplaneapi_haproxy_user }}"
+    group: "{{ dataplaneapi_haproxy_group }}"
+    mode: "0755"
+
+- name: Create HAProxy configuration
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: "{{ dataplaneapi_haproxy_config_file }}"
+    owner: "{{ dataplaneapi_haproxy_user }}"
+    group: "{{ dataplaneapi_haproxy_group }}"
+    mode: "0644"
+    validate: haproxy -c -f %s
+  no_log: true # the userlist holds the API password
+  notify: Restart haproxy
+
+# Compare the installed version with the wanted one, so that changing
+# dataplaneapi_version upgrades (or downgrades) an existing install
+- name: Check installed Data Plane API version
+  ansible.builtin.command: /usr/local/bin/dataplaneapi --version
+  register: dataplaneapi_installed
+  changed_when: false
+  failed_when: false
+
+- name: Download HAProxy Data Plane API
+  ansible.builtin.unarchive:
+    src: "https://github.com/haproxytech/dataplaneapi/releases/download/v{{ dataplaneapi_version }}/dataplaneapi_{{ dataplaneapi_version }}_linux_x86_64.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    include:
+      - dataplaneapi
+    owner: root
+    group: root
+    mode: "0755"
+  when: dataplaneapi_installed.stdout is not search('v' ~ (dataplaneapi_version | regex_escape) ~ ' ')
+  notify: Restart dataplaneapi
+
+- name: Create Data Plane API configuration
+  ansible.builtin.template:
+    src: dataplaneapi.yaml.j2
+    dest: "{{ dataplaneapi_config_file }}"
+    # root and 0600, like the service: Data Plane API rewrites this file
+    # with these permissions every time it starts
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Create systemd service for Data Plane API
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/dataplaneapi.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=HAProxy Data Plane API
+      After=network.target haproxy.service
+
+      [Service]
+      # -f is the Data Plane API config; --config-file is haproxy.cfg.
+      # Runs as root: it rewrites haproxy.cfg and calls systemctl reload.
+      ExecStart=/usr/local/bin/dataplaneapi -f {{ dataplaneapi_config_file }}
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Restart dataplaneapi
+
+- name: Enable and start Data Plane API service
+  ansible.builtin.systemd_service:
+    name: dataplaneapi
+    enabled: true
+    state: started
+    daemon_reload: true

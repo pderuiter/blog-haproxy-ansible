@@ -1,0 +1,5 @@
+---
+# HAProxy branch from the official repositories (see roles/haproxy_install)
+haproxy_install_version: "3.3"
+dataplaneapi_version: "3.4.7"
+dataplaneapi_user: admin

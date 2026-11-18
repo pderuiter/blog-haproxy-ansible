@@ -1,0 +1,14 @@
+---
+# Variables from the post's playbook. The HAProxy branch is set with
+# haproxy_install_version (roles/haproxy_install).
+dataplaneapi_version: "3.4.7"
+dataplaneapi_haproxy_user: haproxy
+dataplaneapi_haproxy_group: haproxy
+dataplaneapi_user: admin
+# Set in group_vars/all/vault.yml (vault_dataplaneapi_password)
+dataplaneapi_password: "{{ vault_dataplaneapi_password }}"
+dataplaneapi_bind_address: "0.0.0.0"
+dataplaneapi_port: 5555
+dataplaneapi_haproxy_socket: /run/haproxy/admin.sock
+dataplaneapi_haproxy_config_file: /etc/haproxy/haproxy.cfg
+dataplaneapi_config_file: /etc/haproxy/dataplaneapi.yaml
