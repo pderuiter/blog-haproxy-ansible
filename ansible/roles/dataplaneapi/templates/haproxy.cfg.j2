@@ -15,7 +15,7 @@ defaults
     timeout server  50000ms
 
 userlist dataplaneapi
-    user {{ dataplaneapi_user }} insecure-password {{ dataplaneapi_password }}
+    user {{ dataplaneapi_user }} password {{ dataplaneapi_password_hash }}
 
 frontend http-in
     bind *:80

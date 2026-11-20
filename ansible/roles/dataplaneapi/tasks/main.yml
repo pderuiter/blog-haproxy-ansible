@@ -7,16 +7,37 @@
     group: "{{ dataplaneapi_haproxy_group }}"
     mode: "0755"
 
-- name: Create HAProxy configuration
+# haproxy.cfg is bootstrap-only: the playbook writes it once, after that the
+# Data Plane API owns it. The haproxy package ships its own haproxy.cfg, so
+# force: false alone would never write the template; the marker file records
+# that the bootstrap happened. Delete the marker to write the template again.
+- name: Check whether haproxy.cfg was bootstrapped
+  ansible.builtin.stat:
+    path: "{{ dataplaneapi_bootstrap_marker }}"
+  register: dataplaneapi_bootstrapped
+
+- name: Create the initial HAProxy configuration
   ansible.builtin.template:
     src: haproxy.cfg.j2
     dest: "{{ dataplaneapi_haproxy_config_file }}"
     owner: "{{ dataplaneapi_haproxy_user }}"
     group: "{{ dataplaneapi_haproxy_group }}"
     mode: "0644"
+    force: "{{ not dataplaneapi_bootstrapped.stat.exists }}"
     validate: haproxy -c -f %s
-  no_log: true # the userlist holds the API password
-  notify: Restart haproxy
+  no_log: true # the userlist holds the API password hash
+  notify: Reload haproxy
+
+- name: Mark haproxy.cfg as owned by the Data Plane API
+  ansible.builtin.copy:
+    dest: "{{ dataplaneapi_bootstrap_marker }}"
+    content: |
+      haproxy.cfg was bootstrapped by Ansible and is now managed by the Data Plane API.
+      Delete this file to let the playbook write its template again.
+    owner: root
+    group: root
+    mode: "0644"
+    force: false
 
 # Compare the installed version with the wanted one, so that changing
 # dataplaneapi_version upgrades (or downgrades) an existing install
@@ -48,6 +69,7 @@
     owner: root
     group: root
     mode: "0600"
+  notify: Restart dataplaneapi
 
 - name: Create systemd service for Data Plane API
   ansible.builtin.copy:

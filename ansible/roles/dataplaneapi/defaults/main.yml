@@ -5,10 +5,13 @@ dataplaneapi_version: "3.4.7"
 dataplaneapi_haproxy_user: haproxy
 dataplaneapi_haproxy_group: haproxy
 dataplaneapi_user: admin
-# Set in group_vars/all/vault.yml (vault_dataplaneapi_password)
-dataplaneapi_password: "{{ vault_dataplaneapi_password }}"
-dataplaneapi_bind_address: "0.0.0.0"
+# SHA-512 crypt hash of the API password, set in group_vars/all/vault.yml:
+#   openssl passwd -6 'your-secure-password'
+dataplaneapi_password_hash: "{{ vault_dataplaneapi_password_hash }}"
+# Plain HTTP: listen on localhost only (use an SSH tunnel or a TLS frontend)
+dataplaneapi_bind_address: "127.0.0.1"
 dataplaneapi_port: 5555
 dataplaneapi_haproxy_socket: /run/haproxy/admin.sock
 dataplaneapi_haproxy_config_file: /etc/haproxy/haproxy.cfg
 dataplaneapi_config_file: /etc/haproxy/dataplaneapi.yaml
+dataplaneapi_bootstrap_marker: /etc/haproxy/.haproxy-cfg-bootstrapped

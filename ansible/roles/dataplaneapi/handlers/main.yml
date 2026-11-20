@@ -1,8 +1,8 @@
 ---
-- name: Restart haproxy
-  ansible.builtin.service:
+- name: Reload haproxy
+  ansible.builtin.systemd_service:
     name: haproxy
-    state: restarted
+    state: reloaded
 
 - name: Restart dataplaneapi
   ansible.builtin.systemd_service:

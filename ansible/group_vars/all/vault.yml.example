@@ -1,5 +1,6 @@
 ---
-# Copy to vault.yml, set a real password and encrypt it:
+# Copy to vault.yml, set the hash of a real password and encrypt it:
+#   openssl passwd -6 'your-secure-password'
 #   ansible-vault encrypt group_vars/all/vault.yml
-# The post writes it as an insecure-password in the dataplaneapi userlist.
-vault_dataplaneapi_password: "change-me"
+# It goes into the dataplaneapi userlist as a hashed "password".
+vault_dataplaneapi_password_hash: "$6$changeme$replace-with-openssl-passwd-output"
